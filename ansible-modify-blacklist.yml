@@ -16,7 +16,7 @@
   tasks:
     - name: Set up backlisted IP in global server blacklist /etc/apache2/conf.d/ip_blacklist.conf.
       lineinfile:
-        dest: /etc/apache2/conf.d/ip_blacklist.conf.back
+        dest: /etc/apache2/conf.d/ip_blacklist.conf
         insertafter: "order allow,deny"
         line: "deny from {{ blacklist_ip }}/32"
         state: present
@@ -28,7 +28,7 @@
 
     - name: Rolling back - Removing backlist IP we just added
       lineinfile:
-        dest: /etc/apache2/conf.d/ip_blacklist.conf.back
+        dest: /etc/apache2/conf.d/ip_blacklist.conf
         line: "deny from {{ blacklist_ip }}/32"
         state: absent
       when: configtest_result|failed
