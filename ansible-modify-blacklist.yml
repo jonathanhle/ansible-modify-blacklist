@@ -1,0 +1,44 @@
+---
+# configure apache blacklist
+- hosts: cminds_servers
+  gather_facts: yes
+  sudo: yes
+
+  vars_prompt:
+    - name: "blacklist_ip"
+      prompt: "Enter IP address to be backlisted"
+      private: no
+
+  pre_tasks:
+    - name: ping all hosts
+      ping: 
+
+  tasks:
+    - name: Set up backlisted IP in global server blacklist /etc/apache2/conf.d/ip_blacklist.conf.
+      lineinfile:
+        dest: /etc/apache2/conf.d/ip_blacklist.conf.back
+        insertafter: "order allow,deny"
+        line: "deny from {{ blacklist_ip }}/32"
+        state: present
+
+    - name: Check that our config is valid
+      command: apache2ctl configtest
+      register: configtest_result
+      ignore_errors: True
+
+    - name: Rolling back - Removing backlist IP we just added
+      lineinfile:
+        dest: /etc/apache2/conf.d/ip_blacklist.conf.back
+        line: "deny from {{ blacklist_ip }}/32"
+        state: absent
+      when: configtest_result|failed
+
+    - name: Rolling back - Ending playbook
+      fail: msg="Configuration IP is not valid. Please check the backlist IP error message before re-running the playbook."
+      when: configtest_result|failed
+
+    - name: Configtest successful - reloading apache2
+      service:
+        name: apache2
+        state: reloaded
+      when: configtest_result|success
